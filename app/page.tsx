@@ -14,6 +14,31 @@ export default function Home() {
   const [currentFrame, setCurrentFrame] = useState<Frame | null>(null);
   const [score, setScore] = useState(0);
   const [guessResult, setGuessResult] = useState<"" | "correct" | "wrong">("");
+  const [cheated, setCheated] = useState(false);
+
+  useEffect(() => {
+    const threshold = 160;
+    let cheated = false;
+  
+    const detectDevTools = () => {
+      const start = performance.now();
+      debugger;
+      const end = performance.now();
+  
+      if (end - start > threshold && !cheated) {
+        cheated = true;
+        alert("STOP CHEATING");
+        setCheated(true);
+        setScore(-999999999);
+      }
+    };
+
+    const interval = setInterval(detectDevTools, 2000);
+  
+    return () => {
+      clearInterval(interval);
+    };
+  }, [cheated]);
 
   useEffect(() => {
     loadRandomEpisode();
@@ -37,6 +62,8 @@ export default function Home() {
   };
 
   const handleGuess = (episodeGuess: string) => {
+    if (cheated) return; // Prevent guessing if caught cheating
+
     if (!currentFrame) return;
 
     const isCorrect = episodeGuess === currentFrame.episode;
@@ -54,12 +81,13 @@ export default function Home() {
     <main className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center px-4 sm:px-8 md:px-16 py-8">
       <p className="text-2xl mb-2">Score: {score}</p>
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 text-pink-400">
-        🎸 Bocchi the Rock: Episode Guesser
+        {cheated ? "Walter is Watching." : "🎸 Bocchi the Rock: Episode Guesser"}
       </h1>
 
-      {currentFrame && (
+      {(currentFrame || cheated) && (
         <img
-          src={currentFrame.url}
+          key={cheated ? "shame" : currentFrame?.url}
+          src={cheated ? "/DogOfShame.jpg" : currentFrame?.url}
           alt="Anime frame"
           className="rounded-lg h-auto w-full max-w-5xl mb-6 border-2 border-pink-500"
           onContextMenu={(e) => e.preventDefault()}
@@ -68,21 +96,37 @@ export default function Home() {
         />
       )}
 
-      {/* Buttons */}
-      <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-        {Array.from({ length: 12 }, (_, index) => (
-          <button
-            key={index}
-            onClick={() => handleGuess(`ep${index + 1}`)}
-            className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer"
-          >
-            Episode {index + 1}
-          </button>
-        ))}
-      </div>
+      {/* Prevent showing buttons when cheated */}
+      {!cheated && (
+        <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
+          {Array.from({ length: 12 }, (_, index) => (
+            <button
+              key={index}
+              onClick={() => handleGuess(`ep${index + 1}`)}
+              className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg cursor-pointer"
+            >
+              Episode {index + 1}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* Result message */}
-      {guessResult === "correct" && (
+      {/* If cheated, show "Pray to Walter" button */}
+      {cheated && (
+        <button
+          onClick={() => {
+            setCheated(false);
+            setScore(0);
+            loadRandomEpisode();
+          }}
+          className="mt-4 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-white font-bold"
+        >
+          Pray to Walter
+        </button>
+      )}
+
+      {/* Show result and only next/try again buttons if not cheated */}
+      {!cheated && guessResult === "correct" && (
         <div className="mt-6 text-green-400 font-semibold text-lg">
           ✅ Correct!
           <button
@@ -94,7 +138,7 @@ export default function Home() {
         </div>
       )}
 
-      {guessResult === "wrong" && (
+      {!cheated && guessResult === "wrong" && (
         <div className="mt-6 text-red-400 font-semibold text-lg text-center">
           ❌ Nope! It was episode{" "}
           <span className="underline">{currentFrame?.episode.slice(2)}</span>
