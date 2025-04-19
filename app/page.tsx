@@ -1,7 +1,8 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import devtoolsDetector from "devtools-detector"; 
 
 type Frame = {
   episode: string;
@@ -15,29 +16,29 @@ export default function Home() {
   const [score, setScore] = useState(0);
   const [guessResult, setGuessResult] = useState<"" | "correct" | "wrong">("");
   const [cheated, setCheated] = useState(false);
+  const [isDevtoolsOpen, setIsDevtoolsOpen] = useState(false);
+  const [buttonsDisabled, setButtonsDisabled] = useState(false);
 
-  // 👮 DevTools cheat detection logic
   useEffect(() => {
-    const threshold = 160;
+    if (typeof window === "undefined") return;
 
-    const detectDevTools = () => {
-      const before = performance.now();
-      debugger; // intentionally triggers slowdown if DevTools open
-      const after = performance.now();
+    devtoolsDetector.setDetectDelay(1000);
+    devtoolsDetector.addListener(setIsDevtoolsOpen);
+    devtoolsDetector.launch();
 
-      if (after - before > threshold && !cheated) {
-        setCheated(true);
-        setScore(-999999999);
-        alert("STOP CHEATING");
-      }
+    return () => {
+      devtoolsDetector.stop();
+      devtoolsDetector.removeListener(setIsDevtoolsOpen);
     };
+  }, []);
 
-    const interval = setInterval(detectDevTools, 2000);
+  useEffect(() => {
+    if (isDevtoolsOpen) {
+      setCheated(true);
+      setScore(-999999999);
+    }
+  }, [isDevtoolsOpen]);
 
-    return () => clearInterval(interval);
-  }, [cheated]);
-
-  // Load random episode on first render
   useEffect(() => {
     loadRandomEpisode();
   }, []);
@@ -54,6 +55,7 @@ export default function Home() {
       const random = data[Math.floor(Math.random() * data.length)];
       setCurrentFrame(random);
       setGuessResult("");
+      setButtonsDisabled(false); 
     } catch (err) {
       console.error("Error loading JSON:", err);
     }
@@ -71,6 +73,8 @@ export default function Home() {
       setScore(0);
       setGuessResult("wrong");
     }
+
+    setButtonsDisabled(true); 
   };
 
   return (
@@ -88,11 +92,11 @@ export default function Home() {
           className="rounded-lg h-auto w-full max-w-5xl mb-6 border-2 border-pink-500"
           onContextMenu={(e) => e.preventDefault()}
           draggable={false}
-          style={{ pointerEvents: "none" }}
+          style={{ pointerEvents: 'none' }}
         />
       )}
 
-      {!cheated && (
+      {!cheated && !guessResult && !buttonsDisabled && (
         <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
           {Array.from({ length: 12 }, (_, index) => (
             <button
@@ -104,19 +108,6 @@ export default function Home() {
             </button>
           ))}
         </div>
-      )}
-
-      {cheated && (
-        <button
-          onClick={() => {
-            setCheated(false);
-            setScore(0);
-            loadRandomEpisode();
-          }}
-          className="mt-4 bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-white font-bold"
-        >
-          Pray to Walter
-        </button>
       )}
 
       {!cheated && guessResult === "correct" && (
