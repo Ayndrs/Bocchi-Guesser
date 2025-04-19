@@ -62,6 +62,9 @@ export default function Home() {
           src={currentFrame.url}
           alt="Anime frame"
           className="rounded-lg h-auto w-full max-w-5xl mb-6 border-2 border-pink-500"
+          onContextMenu={(e) => e.preventDefault()}
+          draggable={false}
+          style={{ pointerEvents: 'none' }}
         />
       )}
 
