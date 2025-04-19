@@ -83,6 +83,7 @@ export default function Home() {
       <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-8 text-pink-400">
         {cheated ? "Walter is Watching." : "🎸 Bocchi the Rock: Episode Guesser"}
       </h1>
+      <p className="text-2xl mb-2">{cheated ? "Don't cheat. (Could be false positive, just reload)" : ""}</p>
 
       {(currentFrame || cheated) && (
         <img
