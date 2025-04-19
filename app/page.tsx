@@ -16,30 +16,28 @@ export default function Home() {
   const [guessResult, setGuessResult] = useState<"" | "correct" | "wrong">("");
   const [cheated, setCheated] = useState(false);
 
+  // 👮 DevTools cheat detection logic
   useEffect(() => {
     const threshold = 160;
-    let cheated = false;
-  
+
     const detectDevTools = () => {
-      const start = performance.now();
-      debugger;
-      const end = performance.now();
-  
-      if (end - start > threshold && !cheated) {
-        cheated = true;
-        alert("STOP CHEATING");
+      const before = performance.now();
+      debugger; // intentionally triggers slowdown if DevTools open
+      const after = performance.now();
+
+      if (after - before > threshold && !cheated) {
         setCheated(true);
         setScore(-999999999);
+        alert("STOP CHEATING");
       }
     };
 
     const interval = setInterval(detectDevTools, 2000);
-  
-    return () => {
-      clearInterval(interval);
-    };
+
+    return () => clearInterval(interval);
   }, [cheated]);
 
+  // Load random episode on first render
   useEffect(() => {
     loadRandomEpisode();
   }, []);
@@ -62,9 +60,7 @@ export default function Home() {
   };
 
   const handleGuess = (episodeGuess: string) => {
-    if (cheated) return; // Prevent guessing if caught cheating
-
-    if (!currentFrame) return;
+    if (cheated || !currentFrame) return;
 
     const isCorrect = episodeGuess === currentFrame.episode;
 
@@ -92,11 +88,10 @@ export default function Home() {
           className="rounded-lg h-auto w-full max-w-5xl mb-6 border-2 border-pink-500"
           onContextMenu={(e) => e.preventDefault()}
           draggable={false}
-          style={{ pointerEvents: 'none' }}
+          style={{ pointerEvents: "none" }}
         />
       )}
 
-      {/* Prevent showing buttons when cheated */}
       {!cheated && (
         <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
           {Array.from({ length: 12 }, (_, index) => (
@@ -111,7 +106,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* If cheated, show "Pray to Walter" button */}
       {cheated && (
         <button
           onClick={() => {
@@ -125,7 +119,6 @@ export default function Home() {
         </button>
       )}
 
-      {/* Show result and only next/try again buttons if not cheated */}
       {!cheated && guessResult === "correct" && (
         <div className="mt-6 text-green-400 font-semibold text-lg">
           ✅ Correct!
